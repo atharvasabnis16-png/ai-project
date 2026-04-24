@@ -32,8 +32,12 @@ connectDB();
 // Middleware
 app.use(express.json());
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://ai-project-wheat-eta.vercel.app'
+  ],
+  credentials: true
 }));
 app.use(helmet({
     contentSecurityPolicy: false // Disable CSP for easier development
