@@ -1,39 +1,24 @@
 import mongoose from 'mongoose';
 
 const teamSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Team name is required'],
-    trim: true,
-    maxlength: 100
-  },
-  inviteCode: {
-    type: String,
+  name: { type: String, required: true, trim: true },
+  projectName: { type: String, required: true, trim: true },
+  code: { 
+    type: String, 
+    required: true, 
     unique: true,
-    required: true
+    uppercase: true
   },
-  members: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  projectName: {
-    type: String,
-    trim: true,
-    default: ''
+  leader: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
   },
-  projectDescription: {
-    type: String,
-    trim: true,
-    default: ''
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  }
-}, {
-  timestamps: true
-});
+  members: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }]
+}, { timestamps: true });
 
 const Team = mongoose.model('Team', teamSchema);
 export default Team;

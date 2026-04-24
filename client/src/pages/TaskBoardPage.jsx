@@ -3,8 +3,12 @@ import api from '../services/api';
 import TaskCard from '../components/tasks/TaskCard';
 import { HiOutlinePlus, HiOutlineSparkles, HiOutlineCollection, HiOutlineSearch } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const TaskBoardPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -12,14 +16,26 @@ const TaskBoardPage = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [user?.teamId]);
 
   const fetchTasks = async () => {
     try {
+      if (!user?.teamId) {
+        setLoading(false);
+        return;
+      }
       const { data } = await api.get('/tasks');
-      setTasks(data);
+      // Handle both array and object responses
+      if (Array.isArray(data)) {
+        setTasks(data);
+      } else if (Array.isArray(data.tasks)) {
+        setTasks(data.tasks);
+      } else {
+        setTasks([]);
+      }
     } catch (err) {
-      toast.error('Failed to sync tasks');
+      console.error(err);
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -56,6 +72,24 @@ const TaskBoardPage = () => {
   ];
 
   if (loading) return <div className="text-center py-20 font-black text-gray-400 uppercase tracking-widest animate-pulse">Establishing Pipeline...</div>;
+  
+  // Show empty state if no team
+  if (!user?.teamId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <h3 className="text-2xl font-black text-gray-800 mb-4">You're not in a team yet</h3>
+        <p className="text-gray-500 font-medium mb-8 text-center max-w-md">
+          Create or join a team to access this feature.
+        </p>
+        <button 
+          onClick={() => navigate('/team')}
+          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transform transition-all active:scale-[0.98]"
+        >
+          Go to Team Page
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-fadeIn">
@@ -67,7 +101,7 @@ const TaskBoardPage = () => {
         <div className="flex items-center space-x-4">
             <div className="bg-white border border-gray-100 px-4 py-2.5 rounded-2xl flex items-center space-x-3 shadow-sm focus-within:ring-2 ring-indigo-50 transition-all">
                 <HiOutlineSearch className="text-gray-300" />
-                <input type="text" placeholder="Filter tasks..." className="bg-transparent border-none outline-none text-xs font-bold placeholder-gray-300" />
+                <input type="text" placeholder="Filter tasks..." className="bg-transparent border-none outline-none text-xs font-bold placeholder-gray-300 text-gray-900 placeholder-gray-400 bg-white" />
             </div>
             <button 
                 onClick={() => setShowModal(true)}
@@ -88,20 +122,20 @@ const TaskBoardPage = () => {
                     <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">{col.name}</h3>
                 </div>
                 <span className="bg-white px-3 py-1 rounded-full text-[10px] font-black text-gray-400 shadow-sm">
-                    {tasks.filter(t => t.status === col.id).length}
+                    {Array.isArray(tasks) ? tasks.filter(t => t.status === col.id).length : 0}
                 </span>
             </div>
 
             <div className="space-y-6 flex-1">
-              {tasks.filter(t => t.status === col.id).length === 0 ? (
+              {Array.isArray(tasks) && tasks.filter(t => t.status === col.id).length === 0 ? (
                 <div className="h-40 flex flex-col items-center justify-center text-center p-8 opacity-20">
                     <HiOutlineCollection size={48} className="mb-4" />
                     <p className="text-[10px] font-black uppercase tracking-widest">No Active Nodes</p>
                 </div>
               ) : (
-                tasks.filter(t => t.status === col.id).map(task => (
+                Array.isArray(tasks) ? tasks.filter(t => t.status === col.id).map(task => (
                   <TaskCard key={task._id} task={task} onAiAssign={handleAiAssign} />
-                ))
+                )) : null
               )}
             </div>
           </div>
@@ -119,7 +153,7 @@ const TaskBoardPage = () => {
                 <input 
                   type="text" required value={newTask.title} 
                   onChange={e => setNewTask({...newTask, title: e.target.value})}
-                  className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all"
+                  className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all text-gray-900 placeholder-gray-400 bg-white"
                   placeholder="e.g. Architect Research Module"
                 />
               </div>
@@ -129,7 +163,7 @@ const TaskBoardPage = () => {
                   <select 
                     value={newTask.skillRequired}
                     onChange={e => setNewTask({...newTask, skillRequired: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold"
+                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold text-gray-900 bg-white"
                   >
                     <option value="coding">Coding</option>
                     <option value="design">Design</option>
@@ -143,7 +177,7 @@ const TaskBoardPage = () => {
                   <input 
                     type="date" required value={newTask.deadline}
                     onChange={e => setNewTask({...newTask, deadline: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold"
+                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold text-gray-900 bg-white"
                   />
                 </div>
               </div>

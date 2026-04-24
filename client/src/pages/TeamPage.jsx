@@ -1,22 +1,29 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { HiOutlineMail, HiOutlineBadgeCheck, HiOutlineUserGroup, HiOutlineShare } from 'react-icons/hi';
+import { HiOutlineClipboardCopy, HiOutlineUsers, HiOutlineLink, HiOutlineUser, HiOutlineStar, HiOutlineLightningBolt, HiOutlineSparkles } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const TeamPage = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [createForm, setCreateForm] = useState({ name: '', projectName: '' });
+  const [joinForm, setJoinForm] = useState({ code: '' });
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState('');
 
   useEffect(() => {
     const fetchTeam = async () => {
       try {
-        const { data } = await api.get('/teams');
-        // If team exists, it's usually returned as the first item or single object
-        setTeam(data[0] || data); 
+        const { data } = await api.get('/teams/my-team');
+        if (data.success) {
+          setTeam(data.team);
+        }
       } catch (err) {
-        toast.error('Failed to sync team data');
+        console.error(err);
+        setTeam(null);
       } finally {
         setLoading(false);
       }
@@ -24,130 +31,335 @@ const TeamPage = () => {
     fetchTeam();
   }, []);
 
+  const createTeam = async (e) => {
+    e.preventDefault();
+    if (!createForm.name || !createForm.projectName) {
+      return toast.error('Please fill in all fields');
+    }
+
+    setCreating(true);
+    try {
+      const { data } = await api.post('/teams/create', createForm);
+      if (data.success) {
+        setTeam(data.team);
+        setGeneratedCode(data.team.code);
+        toast.success('Team created successfully!');
+        setCreateForm({ name: '', projectName: '' });
+        await refreshUser(); // THIS IS KEY
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create team');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const joinTeam = async (e) => {
+    e.preventDefault();
+    if (!joinForm.code || joinForm.code.length !== 6) {
+      return toast.error('Please enter a valid 6-digit team code');
+    }
+
+    setJoining(true);
+    try {
+      const { data } = await api.post('/teams/join', { code: joinForm.code });
+      if (data.success) {
+        setTeam(data.team);
+        toast.success('Successfully joined team!');
+        setJoinForm({ code: '' });
+        await refreshUser(); // THIS IS KEY
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to join team');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const leaveTeam = async () => {
+    if (!confirm('Are you sure you want to leave the team?')) return;
+    
+    try {
+      await api.post('/teams/leave');
+      setTeam(null);
+      toast.success('Left team successfully');
+      await refreshUser();
+    } catch (error) {
+      toast.error('Failed to leave team');
+    }
+  };
+
   const copyInviteCode = () => {
-    if (team?.inviteCode) {
-      navigator.clipboard.writeText(team.inviteCode);
+    if (team?.code) {
+      navigator.clipboard.writeText(team.code);
       toast.success('Invite code copied to clipboard!');
     }
   };
 
   if (loading) return <div className="text-center py-20 font-black text-gray-300 uppercase animate-pulse">Establishing Connection...</div>;
-  if (!team) return <div className="text-center py-20 font-black text-gray-400 capitalize">No team active. Please create or join one first.</div>;
 
-  return (
-    <div className="space-y-12 animate-fadeIn">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">{team.name}</h1>
-          <p className="text-indigo-600 font-black text-xs uppercase tracking-[0.2em] mt-2 italic bg-indigo-50 px-3 py-1 rounded-full inline-block border border-indigo-100">
-            Node ID: {team._id.slice(-8).toUpperCase()}
-          </p>
-        </div>
-        <div className="flex bg-white p-2 rounded-3xl shadow-xl shadow-indigo-100/30 border border-gray-100 items-center space-x-4 pr-6 group">
-            <div className="bg-indigo-600 px-6 py-3 rounded-2xl text-white">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5 text-indigo-200">Invite Code</p>
-                <p className="text-xl font-mono font-black tracking-tight">{team.inviteCode}</p>
+  // SECTION A - No Team State
+  if (!team) {
+    return (
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-8">
+        <div className="w-full max-w-6xl">
+          {/* Top Section */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-2xl shadow-indigo-500/30 mb-8">
+              <HiOutlineLightningBolt className="text-white text-4xl" />
             </div>
-            <button 
-                onClick={copyInviteCode}
-                className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-all group-hover:text-indigo-600"
-            >
-                <HiOutlineShare size={20} />
-            </button>
-        </div>
-      </div>
-
-      <div className="relative p-10 rounded-[48px] bg-[#1a1a2e] text-white overflow-hidden shadow-2xl">
-          <div className="relative z-10 max-w-2xl">
-              <h2 className="text-2xl font-black mb-4">Project Intelligence Goal</h2>
-              <p className="text-indigo-100/60 leading-relaxed font-medium text-lg italic">
-                "{team.projectDescription || 'No description provided yet. Define your project goals in the workspace to align the AI models.'}"
-              </p>
+            <h1 className="text-5xl font-black text-white mb-4 tracking-tight">
+              Start Your Project Journey
+            </h1>
+            <p className="text-gray-400 text-lg font-medium">
+              Create a team or join existing one with a code
+            </p>
           </div>
-          <div className="absolute top-0 right-0 p-10 opacity-10 scale-150 rotate-12">
-            <HiOutlineUserGroup size={200} />
-          </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {team.members.map((member) => (
-          <div key={member._id} className="bg-white rounded-[40px] shadow-lg shadow-indigo-100/20 border border-gray-50 overflow-hidden hover:shadow-2xl transition-all group">
-            <div className="p-8">
-              <div className="flex items-center space-x-6 mb-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[24px] flex items-center justify-center shadow-lg shadow-indigo-500/20 border-4 border-white">
-                  <span className="text-white font-black text-xl">{member.name.charAt(0)}</span>
+          {/* Two Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CREATE TEAM CARD */}
+            <div className="bg-[#1a1a2e] border border-indigo-500/30 rounded-2xl p-8 shadow-2xl shadow-indigo-500/10">
+              <div className="flex items-center space-x-4 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <HiOutlineSparkles className="text-white text-xl" />
                 </div>
                 <div>
-                  <h3 className="font-black text-xl text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">{member.name}</h3>
-                  <div className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                    <HiOutlineMail className="mr-1 text-indigo-300" />
-                    <span>{member.email}</span>
+                  <h2 className="text-2xl font-black text-white mb-1">Create New Team</h2>
+                  <p className="text-gray-400 font-medium">Start fresh, you'll be the team leader</p>
+                </div>
+              </div>
+
+              {!generatedCode ? (
+                <form onSubmit={createTeam} className="space-y-6">
+                  <div>
+                    <input
+                      type="text"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      className="w-full bg-[#0f0f1a] border border-indigo-500/30 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      placeholder="e.g. Team Alpha"
+                      required
+                    />
                   </div>
+                  
+                  <div>
+                    <input
+                      type="text"
+                      value={createForm.projectName}
+                      onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })}
+                      className="w-full bg-[#0f0f1a] border border-indigo-500/30 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      placeholder="e.g. AI Healthcare Platform"
+                      required
+                    />
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black rounded-xl hover:scale-[1.02] hover:brightness-[1.1] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    {creating ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <span>Create Team →</span>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="bg-indigo-500/10 border border-indigo-500 rounded-xl p-6 text-center">
+                  <div className="text-green-400 text-2xl mb-4">✅ Team Created!</div>
+                  <div className="text-white text-xl font-bold mb-2">{createForm.name}</div>
+                  <div className="text-gray-400 text-sm mb-4">Your Invite Code:</div>
+                  <div className="text-indigo-300 text-4xl font-mono font-black tracking-widest mb-6">
+                    {generatedCode}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedCode);
+                      toast.success('Code copied to clipboard!');
+                    }}
+                    className="w-full py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <HiOutlineClipboardCopy size={20} />
+                    <span>Copy Code</span>
+                  </button>
+                  <p className="text-gray-400 text-sm mt-4">Share this code with your teammates</p>
                 </div>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Cognitive Profile</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {member.skills && member.skills.length > 0 ? (
-                            member.skills.map((skill, i) => (
-                                <div key={i} className="bg-gray-50 px-3 py-2 rounded-xl flex items-center space-x-2 border border-gray-100">
-                                    <span className="text-[10px] font-bold text-gray-700 capitalize">{skill.name}</span>
-                                    <div className="flex space-x-0.5">
-                                        {[1,2,3,4,5].map(lvl => (
-                                            <div key={lvl} className={`w-1 h-1 rounded-full ${lvl <= skill.confidence ? 'bg-indigo-500' : 'bg-gray-200'}`} />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-[10px] font-bold text-gray-300 italic">No skills analyzed</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="pt-6 border-t border-gray-50">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Contribution Badges</h4>
-                    <div className="flex items-center space-x-2">
-                        {member._id === team.createdBy._id || member._id === team.createdBy ? (
-                            <div className="bg-yellow-50 text-yellow-600 px-3 py-1.5 rounded-lg flex items-center space-x-2 border border-yellow-100">
-                                <HiOutlineBadgeCheck size={14} />
-                                <span className="text-[10px] font-black uppercase">Founder</span>
-                            </div>
-                        ) : (
-                            <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center space-x-2 border border-blue-100">
-                                <HiOutlineUserGroup size={14} />
-                                <span className="text-[10px] font-black uppercase">Member</span>
-                            </div>
-                        )}
-                        <div className="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg flex items-center space-x-2 border border-green-100">
-                            <span className="text-[10px] font-black uppercase italic">High Sync</span>
-                        </div>
-                    </div>
-                </div>
-              </div>
+              )}
             </div>
-            
-            <button className="w-full bg-gray-50 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-100 transition-all border-t border-gray-50">
-                View Detailed Intelligence
+
+            {/* JOIN TEAM CARD */}
+            <div className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl p-8 shadow-2xl shadow-purple-500/10">
+              <div className="flex items-center space-x-4 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                  <HiOutlineLink className="text-white text-xl" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white mb-1">Join Existing Team</h2>
+                  <p className="text-gray-400 font-medium">Enter the code shared by your team leader</p>
+                </div>
+              </div>
+
+              <form onSubmit={joinTeam} className="space-y-6">
+                <div>
+                  <input
+                    type="text"
+                    value={joinForm.code}
+                    onChange={(e) => setJoinForm({ code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) })}
+                    className="w-full bg-[#0f0f1a] border border-purple-500/30 text-white rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors text-center text-2xl font-mono tracking-widest"
+                    placeholder="Enter 6-digit code e.g. ABC123"
+                    maxLength={6}
+                    required
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={joining}
+                  className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-black rounded-xl hover:scale-[1.02] hover:brightness-[1.1] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {joining ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Joining...</span>
+                    </>
+                  ) : (
+                    <span>Join Team →</span>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SECTION B - Has Team State
+  return (
+    <div className="min-h-screen bg-[#0f0f1a] p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Page Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-black text-white mb-2 tracking-tight">
+            {team.name}
+          </h1>
+          <p className="text-indigo-400 text-xl font-medium mb-4">
+            {team.projectName}
+          </p>
+          <div className="inline-flex items-center space-x-2 bg-indigo-500/20 border border-indigo-500 px-4 py-2 rounded-full">
+            <span className="text-indigo-300 font-medium">Code:</span>
+            <span className="text-white font-mono font-bold">{team.code}</span>
+            <button
+              onClick={copyInviteCode}
+              className="text-indigo-300 hover:text-white transition-colors"
+            >
+              <HiOutlineClipboardCopy size={16} />
             </button>
           </div>
-        ))}
+        </div>
 
-        <div className="bg-[#f8f9fe] border-4 border-dashed border-gray-200 rounded-[48px] flex flex-col items-center justify-center p-12 text-center space-y-6 group cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all">
-            <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center text-gray-300 group-hover:text-indigo-600 group-hover:shadow-xl transition-all shadow-indigo-100">
-                <HiOutlinePlus size={32} />
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-[#1a1a2e] border border-indigo-500/20 rounded-2xl p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center">
+                <HiOutlineUsers className="text-indigo-400 text-xl" />
+              </div>
+              <div>
+                <div className="text-3xl font-black text-white">{team.members?.length || 0}</div>
+                <div className="text-gray-400 text-sm">Total Members</div>
+              </div>
             </div>
-            <div>
-                <h4 className="font-black text-xl text-gray-400 group-hover:text-indigo-600">Sync New Member</h4>
-                <p className="text-xs font-medium text-gray-400 mt-2 px-6">Share the secret hub code above to onboard your peers into the project node.</p>
+          </div>
+
+          <div className="bg-[#1a1a2e] border border-purple-500/20 rounded-2xl p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <HiOutlineSparkles className="text-purple-400 text-xl" />
+              </div>
+              <div>
+                <div className="text-3xl font-black text-white">0</div>
+                <div className="text-gray-400 text-sm">Active Tasks</div>
+              </div>
             </div>
+          </div>
+
+          <div className="bg-[#1a1a2e] border border-green-500/20 rounded-2xl p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-green-400 rounded-full"></div>
+              </div>
+              <div>
+                <div className="text-3xl font-black text-white">0%</div>
+                <div className="text-gray-400 text-sm">Completion</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Members Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {team.members?.map((member) => (
+            <div key={member._id} className="bg-[#1a1a2e] border border-indigo-500/20 rounded-2xl p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-xl">
+                    {member.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white mb-1">{member.name || 'Unknown'}</h3>
+                  <p className="text-gray-400 text-sm mb-3">{member.email}</p>
+                  
+                  <div className="flex items-center space-x-2 mb-3">
+                    {team.leader === member._id ? (
+                      <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
+                        <HiOutlineStar size={12} />
+                        <span>Leader</span>
+                      </div>
+                    ) : (
+                      <div className="bg-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
+                        <HiOutlineUser size={12} />
+                        <span>Member</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {member.skills && member.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {member.skills.map((skill, i) => (
+                        <div
+                          key={i}
+                          className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full px-2 py-1 text-xs"
+                        >
+                          {skill.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Leave Team Button */}
+        <div className="text-center">
+          <button
+            onClick={leaveTeam}
+            className="px-8 py-3 border border-red-500 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all font-medium"
+          >
+            Leave Team
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-import { HiOutlinePlus } from 'react-icons/hi';
 export default TeamPage;

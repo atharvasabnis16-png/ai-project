@@ -2,34 +2,38 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed, HiOutlineArrowRight } from 'react-icons/hi';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/login`,
-        {
-          method: "POST", 
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        }
-      );
-      const data = await response.json();
+      const { data } = await api.post('/auth/login', { 
+        email, 
+        password 
+      });
       if (data.token) {
         login(data.user, data.token);
-        navigate("/dashboard");
+        navigate('/dashboard');
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || 'Login failed');
       }
     } catch (error) {
-      setError("Connection error. Is the server running?");
+      setError(
+        error.response?.data?.message || 
+        'Login failed. Check your credentials.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,7 +66,7 @@ const LoginPage = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400"
+                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white"
                   placeholder="name@university.edu"
                 />
               </div>
@@ -79,7 +83,7 @@ const LoginPage = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400"
+                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white"
                   placeholder="••••••••"
                 />
               </div>

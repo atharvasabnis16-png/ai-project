@@ -95,3 +95,17 @@ body {
 #root {
   min-height: 100vh;
 }
+
+input, textarea, select {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+input:focus, textarea:focus {
+  color: #111827 !important;
+  outline: none;
+}

@@ -169,7 +169,7 @@ const SignupPage = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none"
+                    className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none text-gray-900 placeholder-gray-400 bg-white"
                     placeholder="Full Name"
                   />
                 </div>
@@ -187,7 +187,7 @@ const SignupPage = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none"
+                    className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none text-gray-900 placeholder-gray-400 bg-white"
                     placeholder="name@university.edu"
                   />
                 </div>
@@ -206,7 +206,7 @@ const SignupPage = () => {
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none"
+                      className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none text-gray-900 placeholder-gray-400 bg-white"
                       placeholder="Min 6 chars"
                     />
                   </div>
@@ -223,7 +223,7 @@ const SignupPage = () => {
                         required
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none"
+                        className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white font-semibold transition-all outline-none text-gray-900 placeholder-gray-400 bg-white"
                         placeholder="Repeat"
                         />
                     </div>

@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { HiOutlineChatAlt2, HiOutlinePlus, HiOutlineSparkles, HiOutlineCalendar, HiOutlineTrash } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const MeetingsPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -13,14 +17,19 @@ const MeetingsPage = () => {
 
   useEffect(() => {
     fetchMeetings();
-  }, []);
+  }, [user?.teamId]);
 
   const fetchMeetings = async () => {
     try {
+      if (!user?.teamId) {
+        setLoading(false);
+        return;
+      }
       const { data } = await api.get('/meetings');
       setMeetings(data);
     } catch (err) {
-      toast.error('Sync failed');
+      console.error(err);
+      setMeetings([]);
     } finally {
       setLoading(false);
     }
@@ -55,6 +64,24 @@ const MeetingsPage = () => {
   };
 
   if (loading) return <div className="text-center py-20 font-black text-gray-300 animate-pulse">Accessing Transcript Hub...</div>;
+  
+  // Show empty state if no team
+  if (!user?.teamId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <h3 className="text-2xl font-black text-gray-800 mb-4">You're not in a team yet</h3>
+        <p className="text-gray-500 font-medium mb-8 text-center max-w-md">
+          Create or join a team to access this feature.
+        </p>
+        <button 
+          onClick={() => navigate('/team')}
+          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transform transition-all active:scale-[0.98]"
+        >
+          Go to Team Page
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-fadeIn h-full flex flex-col">
@@ -197,7 +224,7 @@ const MeetingsPage = () => {
                     <input 
                     type="text" required value={newMeeting.title} 
                     onChange={e => setNewMeeting({...newMeeting, title: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all"
+                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all text-gray-900 placeholder-gray-400 bg-white"
                     placeholder="Weekly Sync #1"
                     />
                 </div>
@@ -206,7 +233,7 @@ const MeetingsPage = () => {
                     <input 
                     type="date" required value={newMeeting.date}
                     onChange={e => setNewMeeting({...newMeeting, date: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold"
+                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold text-gray-900 bg-white"
                     />
                 </div>
               </div>
@@ -215,7 +242,7 @@ const MeetingsPage = () => {
                 <textarea 
                   required value={newMeeting.transcript}
                   onChange={e => setNewMeeting({...newMeeting, transcript: e.target.value})}
-                  className="w-full h-48 px-6 py-4 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all resize-none"
+                  className="w-full h-48 px-6 py-4 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all resize-none text-gray-900 placeholder-gray-400 bg-white"
                   placeholder="Paste meeting notes or voice-to-text here..."
                 />
               </div>

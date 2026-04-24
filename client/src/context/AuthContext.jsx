@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import api from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -31,17 +32,21 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
+  const refreshUser = async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      if (data.user) {
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+  };
+
   const register = async (userData) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/register`, 
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(userData)
-        }
-      );
-      const data = await response.json();
+      const { data } = await api.post('/auth/register', userData);
       if (data.token) {
         login(data.user, data.token);
       }
@@ -54,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, token, login, logout, register, 
-      isAuthenticated: !!token, loading 
+      refreshUser, isAuthenticated: !!token, loading 
     }}>
       {children}
     </AuthContext.Provider>

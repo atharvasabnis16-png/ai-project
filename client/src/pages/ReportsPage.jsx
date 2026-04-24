@@ -3,14 +3,22 @@ import api from '../services/api';
 import ContributionChart from '../components/dashboard/ContributionChart';
 import { HiOutlineChartBar, HiOutlineCalendar, HiOutlineTrendingUp, HiOutlineShieldCheck } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ReportsPage = () => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchReports = async () => {
             try {
+                if (!user?.teamId) {
+                    setLoading(false);
+                    return;
+                }
                 // Mocking complex reports for premium feel
                 setStats({
                     totalTasks: 24,
@@ -36,9 +44,32 @@ const ReportsPage = () => {
             }
         };
         fetchReports();
-    }, []);
+    }, [user?.teamId]);
 
     if (loading) return <div className="text-center py-20 font-black text-gray-300 animate-pulse uppercase">Compiling Performance Data...</div>;
+
+    // Show no-team state
+    if (!user?.teamId) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center space-y-6">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                        <HiOutlineChartBar className="text-gray-400 text-3xl" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Team Data Available</h2>
+                        <p className="text-gray-600 mb-6">You need to be in a team to view performance reports.</p>
+                        <button 
+                            onClick={() => navigate('/team')}
+                            className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium"
+                        >
+                            Go to Team Page
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-12 animate-fadeIn pb-16">

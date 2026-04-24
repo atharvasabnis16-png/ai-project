@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { HiOutlineBell, HiOutlineSearch, HiOutlineAdjustments, HiOutlineUser, HiOutlineLogout } from 'react-icons/hi';
+import api from '../../services/api';
 
 const Topbar = () => {
   const { user, logout } = useAuth();
@@ -10,6 +11,22 @@ const Topbar = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [teamName, setTeamName] = useState('');
+
+  useEffect(() => {
+    const fetchTeamName = async () => {
+      if (!user?.teamId) return;
+      try {
+        const { data } = await api.get('/teams/my-team');
+        if (data.success && data.team) {
+          setTeamName(data.team.name);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTeamName();
+  }, [user?.teamId]);
 
   const mockSearchResults = [
     { title: 'Project Specification', type: 'Note' },
@@ -97,7 +114,7 @@ const Topbar = () => {
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-gray-800 leading-tight">{user?.name || 'Academic'}</p>
               <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">
-                {user?.teamId ? 'Team Active' : 'No Team'}
+                {teamName || 'No Team'}
               </p>
             </div>
             <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-600/20 border-2 border-white">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   HiOutlineSparkles, 
   HiOutlineDocumentText, 
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 
 const WorkspacePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [note, setNote] = useState({ title: '', content: '' });
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -19,14 +21,19 @@ const WorkspacePage = () => {
 
   useEffect(() => {
     fetchNotes();
-  }, []);
+  }, [user?.teamId]);
 
   const fetchNotes = async () => {
     try {
+      if (!user?.teamId) {
+        setLoading(false);
+        return;
+      }
       const { data } = await api.get('/workspace/notes');
       setNote(data.note);
     } catch (err) {
-      toast.error('Failed to sync team notes');
+      console.error(err);
+      setNote({ title: '', content: '' });
     } finally {
       setLoading(false);
     }
@@ -57,6 +64,24 @@ const WorkspacePage = () => {
   };
 
   if (loading) return <div className="text-center py-20 font-black text-gray-300 uppercase animate-pulse">Accessing Shared Hub...</div>;
+  
+  // Show empty state if no team
+  if (!user?.teamId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <h3 className="text-2xl font-black text-gray-800 mb-4">You're not in a team yet</h3>
+        <p className="text-gray-500 font-medium mb-8 text-center max-w-md">
+          Create or join a team to access this feature.
+        </p>
+        <button 
+          onClick={() => navigate('/team')}
+          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transform transition-all active:scale-[0.98]"
+        >
+          Go to Team Page
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col space-y-8 animate-fadeIn">
@@ -81,7 +106,7 @@ const WorkspacePage = () => {
             type="text"
             value={note.title}
             onChange={(e) => setNote({ ...note, title: e.target.value })}
-            className="text-3xl font-black bg-transparent border-none outline-none text-gray-900 placeholder-gray-200 focus:placeholder-transparent transition-all"
+            className="text-3xl font-black bg-transparent border-none outline-none text-gray-900 placeholder-gray-200 focus:placeholder-transparent transition-all bg-white"
             placeholder="Document Objective..."
           />
           
@@ -89,7 +114,7 @@ const WorkspacePage = () => {
             <textarea
               value={note.content}
               onChange={(e) => setNote({ ...note, content: e.target.value })}
-              className="w-full flex-1 p-10 resize-none border-none outline-none text-gray-700 leading-relaxed font-bold text-lg bg-white/50 z-10"
+              className="w-full flex-1 p-10 resize-none border-none outline-none text-gray-700 leading-relaxed font-bold text-lg bg-white/50 z-10 text-gray-900 placeholder-gray-400 bg-white"
               placeholder="Begin brainstorming, taking notes, or outlining your strategy here..."
             />
             <div className="absolute bottom-6 right-10 z-20 flex items-center space-x-2 text-[10px] font-black text-gray-300 uppercase tracking-widest">

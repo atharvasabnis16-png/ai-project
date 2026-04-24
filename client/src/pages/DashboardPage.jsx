@@ -9,39 +9,47 @@ import { useNavigate } from 'react-router-dom';
 
 const DashboardPage = () => {
   const { user } = useAuth();
-  
-  // Initialize with the mock data so it's never null
   const [stats, setStats] = useState({
-    completion: 45,
-    tasks: { todo: 4, inProgress: 3, done: 5 },
-    contributions: [
-      { name: 'Alex', value: 35 },
-      { name: 'Jordan', value: 25 },
-      { name: 'Sam', value: 40 }
-    ],
-    hasImbalance: true
+    completion: 0,
+    tasks: { todo: 0, inProgress: 0, done: 0 },
+    contributions: [],
+    hasImbalance: false
   });
   const [loading, setLoading] = useState(true);
-  const [showImbalanceBanner, setShowImbalanceBanner] = useState(true);
+  const [showImbalanceBanner, setShowImbalanceBanner] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const { data } = await api.get('/teams'); 
-        // Only override if data actually has the expected structure
-        if (data && data.stats) {
-          setStats(data.stats);
+        if (!user?.teamId) {
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        // We'll just continue using the mock data silently
-        // Optional: toast.error('Using mock data, failed to load from backend');
+        const { data } = await api.get('/teams/my-team'); 
+        if (data && data.team) {
+          // For now, set basic stats - can be enhanced later with real team data
+          setStats({
+            completion: 0,
+            tasks: { todo: 0, inProgress: 0, done: 0 },
+            contributions: [],
+            hasImbalance: false
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        setStats({
+          completion: 0,
+          tasks: { todo: 0, inProgress: 0, done: 0 },
+          contributions: [],
+          hasImbalance: false
+        });
       } finally {
         setLoading(false);
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [user?.teamId, user]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -50,7 +58,33 @@ const DashboardPage = () => {
     </div>
   );
 
-  // Fallback safe values in case stats gets corrupted
+  // Show no-team state
+  if (!user?.teamId) {
+    return (
+      <div className="space-y-10 animate-fadeIn">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Welcome, {user?.name || 'User'}!</h1>
+            <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic">AI Managed Hub</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center h-96 bg-white rounded-[40px] shadow-xl shadow-indigo-100/20 border border-gray-50">
+          <h3 className="text-2xl font-black text-gray-800 mb-4">No team yet</h3>
+          <p className="text-gray-500 font-medium mb-8 text-center max-w-md">
+            Create or join a team to see contributions and access team features.
+          </p>
+          <button 
+            onClick={() => navigate('/team')}
+            className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transform transition-all active:scale-[0.98] flex items-center space-x-3"
+          >
+            <span>Go to Team Page</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const safeStats = stats || {
     completion: 0,
     tasks: { todo: 0, inProgress: 0, done: 0 },
@@ -75,7 +109,7 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {/* Intelligence Banner */}
+      {/* Intelligence Banner - Only show if team exists and has imbalance */}
       {safeStats.hasImbalance && showImbalanceBanner && (
         <div className="bg-gradient-to-r from-[#1a1a2e] to-[#2a2a4e] p-[2px] rounded-[32px] shadow-2xl shadow-indigo-200">
             <div className="bg-[#1a1a2e] rounded-[30px] p-6 flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 text-white">
@@ -85,7 +119,7 @@ const DashboardPage = () => {
                     </div>
                     <div>
                         <h4 className="font-black text-lg tracking-tight">Workload Imbalance Detected</h4>
-                        <p className="text-gray-400 text-sm font-medium">Jordan's current assigned tasks outweigh the team average by 40%. Consider re-assigning.</p>
+                        <p className="text-gray-400 text-sm font-medium">Team workload imbalance detected. Consider re-assigning tasks.</p>
                     </div>
                 </div>
                 <button 
@@ -132,23 +166,31 @@ const DashboardPage = () => {
             </div>
         </div>
 
-        {/* Contribution Card */}
-        <div className="lg:col-span-2 bg-white p-10 rounded-[40px] shadow-xl shadow-indigo-100/20 border border-gray-50 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-10">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Individual Contributions (%)</h3>
-                <div className="flex items-center space-x-2 text-[10px] font-black text-gray-400 uppercase">
-                    <HiOutlineClock size={14} />
-                    <span>Real-time Sync</span>
-                </div>
-            </div>
-            <div className="flex-1 min-h-[300px]">
-                {safeStats.contributions && safeStats.contributions.length > 0 ? (
+        {/* Contribution Card - Only show if team has contribution data */}
+        {safeStats.contributions && safeStats.contributions.length > 0 ? (
+          <div className="lg:col-span-2 bg-white p-10 rounded-[40px] shadow-xl shadow-indigo-100/20 border border-gray-50 flex flex-col h-full">
+              <div className="flex justify-between items-center mb-10">
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Individual Contributions (%)</h3>
+                  <div className="flex items-center space-x-2 text-[10px] font-black text-gray-400 uppercase">
+                      <HiOutlineClock size={14} />
+                      <span>Real-time Sync</span>
+                  </div>
+              </div>
+              <div className="flex-1 min-h-[300px]">
                   <ContributionChart data={safeStats.contributions} />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">No contribution data available</div>
-                )}
-            </div>
-        </div>
+              </div>
+          </div>
+        ) : (
+          <div className="lg:col-span-2 bg-white p-10 rounded-[40px] shadow-xl shadow-indigo-100/20 border border-gray-50 flex flex-col items-center justify-center h-full">
+              <div className="text-center">
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Individual Contributions (%)</h3>
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                      <p className="text-lg font-medium mb-2">No contribution data yet</p>
+                      <p className="text-sm">Start working on tasks to see contribution metrics</p>
+                  </div>
+              </div>
+          </div>
+        )}
       </div>
 
       {/* Secondary Cards */}
