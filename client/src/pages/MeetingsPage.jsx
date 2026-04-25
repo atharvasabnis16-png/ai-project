@@ -26,9 +26,14 @@ const MeetingsPage = () => {
         return;
       }
       const { data } = await api.get('/meetings');
-      setMeetings(data);
-    } catch (err) {
-      console.error(err);
+      setMeetings(Array.isArray(data.meetings) 
+        ? data.meetings 
+        : Array.isArray(data) 
+          ? data 
+          : []
+      );
+    } catch (error) {
+      console.error(error);
       setMeetings([]);
     } finally {
       setLoading(false);
@@ -83,6 +88,8 @@ const MeetingsPage = () => {
     );
   }
 
+  const safeMeetings = Array.isArray(meetings) ? meetings : [];
+
   return (
     <div className="space-y-10 animate-fadeIn h-full flex flex-col">
       <div className="flex justify-between items-center">
@@ -102,13 +109,13 @@ const MeetingsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 flex-1">
         {/* Meeting List */}
         <div className="lg:col-span-1 space-y-6 overflow-y-auto max-h-[calc(100vh-250px)] pr-4 custom-scrollbar">
-          {meetings.length === 0 ? (
+          {safeMeetings.length === 0 ? (
             <div className="bg-white p-10 rounded-[40px] border-2 border-dashed border-gray-100 text-center opacity-40">
                 <HiOutlineChatAlt2 size={48} className="mx-auto mb-4" />
                 <p className="text-[10px] font-black uppercase tracking-widest">No Sessions Logged</p>
             </div>
           ) : (
-            meetings.map(m => (
+            safeMeetings.map(m => (
               <div 
                 key={m._id} 
                 onClick={() => analyzeMeeting(m._id)}
@@ -173,8 +180,8 @@ const MeetingsPage = () => {
                             Executive Summary
                         </h4>
                         <p className="text-gray-600 font-bold leading-relaxed italic bg-gray-50 p-8 rounded-[32px] border border-gray-100">
-                            {analysis.summary}
-                        </p>Section
+                            {analysis.summary || 'No summary available'}
+                        </p>
                     </section>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -185,10 +192,12 @@ const MeetingsPage = () => {
                             </h4>
                             <ul className="space-y-3">
                                 {analysis.decisions?.map((d, i) => (
-                                    <li key={i} className="flex items-start space-x-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 text-sm font-bold text-gray-700">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0" />
-                                        <span>{d}</span>
-                                    </li>
+                                    d && typeof d === 'string' ? (
+                                        <li key={i} className="flex items-start space-x-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 text-sm font-bold text-gray-700">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0" />
+                                            <span>{d}</span>
+                                        </li>
+                                    ) : null
                                 ))}
                             </ul>
                         </section>
@@ -199,10 +208,12 @@ const MeetingsPage = () => {
                             </h4>
                             <ul className="space-y-3">
                                 {analysis.actionPoints?.map((a, i) => (
-                                    <li key={i} className="flex items-start space-x-3 p-4 bg-green-50/50 rounded-2xl border border-green-100/50 text-sm font-bold text-gray-700">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-600 mt-1.5 flex-shrink-0" />
-                                        <span>{a}</span>
-                                    </li>
+                                    a && typeof a === 'string' ? (
+                                        <li key={i} className="flex items-start space-x-3 p-4 bg-green-50/50 rounded-2xl border border-green-100/50 text-sm font-bold text-gray-700">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-600 mt-1.5 flex-shrink-0" />
+                                            <span>{a}</span>
+                                        </li>
+                                    ) : null
                                 ))}
                             </ul>
                         </section>

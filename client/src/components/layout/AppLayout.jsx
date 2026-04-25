@@ -16,11 +16,11 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#f8f9fe]">
+    <div className="flex h-screen bg-[#f8f9fe] dark:bg-[#0f0f1a]">
       <Sidebar />
       <div className="flex-1 flex flex-col ml-64 min-h-screen">
         <Topbar />
-        <main className="p-10 flex-1 overflow-y-auto">
+        <main className="p-10 flex-1 overflow-y-auto dark:bg-[#0f0f1a]">
           <Outlet />
         </main>
       </div>

@@ -115,13 +115,13 @@ const TaskBoardPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {columns.map(col => (
-          <div key={col.id} className="bg-gray-50/50 rounded-[40px] p-6 border-2 border-dashed border-gray-100 min-h-[600px] flex flex-col">
+          <div key={col.id} className="bg-gray-50/50 rounded-[40px] p-6 border-2 border-dashed border-gray-100 min-h-[600px] flex flex-col dark:bg-[#1a1a2e] dark:border-indigo-500/20">
             <div className="flex items-center justify-between mb-8 px-2">
                 <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">{col.name}</h3>
+                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest dark:text-white">{col.name}</h3>
                 </div>
-                <span className="bg-white px-3 py-1 rounded-full text-[10px] font-black text-gray-400 shadow-sm">
+                <span className="bg-white px-3 py-1 rounded-full text-[10px] font-black text-gray-400 shadow-sm dark:bg-[#0f0f1a] dark:text-gray-400">
                     {Array.isArray(tasks) ? tasks.filter(t => t.status === col.id).length : 0}
                 </span>
             </div>
@@ -145,15 +145,15 @@ const TaskBoardPage = () => {
       {/* Simplified Create Task Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-[#1a1a2e]/40">
-          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl p-10 relative animate-fadeIn">
-            <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Assemble New Task</h2>
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl p-10 relative animate-fadeIn dark:bg-[#1a1a2e] dark:border-indigo-500/20">
+            <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight dark:text-white">Assemble New Task</h2>
             <form onSubmit={createTask} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Objective Title</label>
                 <input 
                   type="text" required value={newTask.title} 
                   onChange={e => setNewTask({...newTask, title: e.target.value})}
-                  className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all text-gray-900 placeholder-gray-400 bg-white"
+                  className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all text-gray-900 placeholder-gray-400 bg-white dark:bg-[#0f0f1a] dark:text-white dark:border-indigo-500/30"
                   placeholder="e.g. Architect Research Module"
                 />
               </div>

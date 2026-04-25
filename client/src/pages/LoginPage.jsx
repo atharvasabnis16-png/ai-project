@@ -38,7 +38,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fe] flex items-center justify-center p-6 relative overflow-hidden font-inter">
+    <div className="min-h-screen bg-[#f8f9fe] dark:bg-[#0f0f1a] flex items-center justify-center p-6 relative overflow-hidden font-inter">
       {/* Decorative Gradients */}
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-200/40 rounded-full blur-3xl animate-pulse delay-700"></div>
@@ -53,7 +53,7 @@ const LoginPage = () => {
           <p className="text-gray-500 font-semibold text-sm uppercase tracking-widest opacity-60">Intelligence Platform</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-[40px] shadow-2xl shadow-indigo-100/50 p-10 border border-white/50">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[40px] shadow-2xl shadow-indigo-100/50 p-10 border border-white/50 dark:bg-[#1a1a2e] dark:border-indigo-500/20">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-[xs] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Email Connection</label>
@@ -66,7 +66,7 @@ const LoginPage = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white"
+                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white dark:bg-[#0f0f1a] dark:text-white dark:border-indigo-500/30"
                   placeholder="name@university.edu"
                 />
               </div>
@@ -83,7 +83,7 @@ const LoginPage = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white"
+                  className="block w-full pl-12 pr-4 py-4 bg-gray-50/50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 focus:bg-white text-gray-900 font-semibold transition-all outline-none placeholder-gray-400 bg-white dark:bg-[#0f0f1a] dark:text-white dark:border-indigo-500/30"
                   placeholder="••••••••"
                 />
               </div>

@@ -16,6 +16,7 @@ import taskRoutes from './routes/tasks.js';
 import workspaceRoutes from './routes/workspace.js';
 import meetingRoutes from './routes/meetings.js';
 import aiRoutes from './routes/ai.js';
+import notificationRoutes from './routes/notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -51,14 +51,14 @@ const ReportsPage = () => {
     // Show no-team state
     if (!user?.teamId) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#f8f9fe] dark:bg-[#0f0f1a] flex items-center justify-center p-6 font-inter">
                 <div className="text-center space-y-6">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
                         <HiOutlineChartBar className="text-gray-400 text-3xl" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Team Data Available</h2>
-                        <p className="text-gray-600 mb-6">You need to be in a team to view performance reports.</p>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">No Team Data Available</h2>
+                        <p className="text-gray-600 mb-6 dark:text-gray-400">You need to be in a team to view performance reports.</p>
                         <button 
                             onClick={() => navigate('/team')}
                             className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium"
@@ -72,11 +72,11 @@ const ReportsPage = () => {
     }
 
     return (
-        <div className="space-y-12 animate-fadeIn pb-16">
+        <div className="space-y-12 animate-fadeIn pb-16 dark:bg-[#0f0f1a] dark:text-white">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Performance Reports</h1>
-                    <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic">Advanced Project Metrics</p>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight dark:text-white">Performance Reports</h1>
+                    <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic dark:text-gray-400">Advanced Project Metrics</p>
                 </div>
                 <div className="flex items-center space-x-3">
                     <button className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-all shadow-sm">

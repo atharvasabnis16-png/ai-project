@@ -1,5 +1,6 @@
 import Meeting from '../models/Meeting.js';
 import { aiService } from '../services/claudeService.js';
+import { createNotification } from './notificationController.js';
 
 // GET /api/meetings
 export const getMeetings = async (req, res, next) => {
@@ -37,6 +38,15 @@ export const createMeeting = async (req, res, next) => {
       speakerParticipation: speakerParticipation || [],
       createdBy: req.userId
     });
+
+    // Create notification for new meeting
+    await createNotification(
+      user.teamId,
+      user._id,
+      'meeting_scheduled',
+      `${user.name} scheduled a meeting: ${title}`,
+      '/meetings'
+    );
 
     res.status(201).json({ meeting });
   } catch (error) {

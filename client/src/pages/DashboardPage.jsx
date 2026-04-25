@@ -93,12 +93,12 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="space-y-10 animate-fadeIn">
+    <div className="space-y-12 animate-fadeIn pb-16 dark:bg-[#0f0f1a] dark:text-white">
       {/* Welcome Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Welcome, {user?.name || 'User'}!</h1>
-          <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic">AI Managed Hub</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic dark:text-gray-400">Project Intelligence Overview</p>
         </div>
         <button 
           onClick={() => toast.success('Project synced successfully!')}

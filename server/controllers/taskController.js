@@ -2,6 +2,7 @@ import Task from '../models/Task.js';
 import Team from '../models/Team.js';
 import { findBestFitMember } from '../services/skillMatchService.js';
 import { aiService } from '../services/claudeService.js';
+import { createNotification } from './notificationController.js';
 
 // GET /api/tasks — Get all tasks for user's team
 export const getTasks = async (req, res, next) => {
@@ -43,6 +44,16 @@ export const createTask = async (req, res, next) => {
     });
 
     const populated = await Task.findById(task._id).populate('assignee', 'name email avatar');
+    
+    // Create notification for new task
+    await createNotification(
+      user.teamId,
+      user._id,
+      'new_task',
+      `${user.name} created a new task: ${title}`,
+      '/tasks'
+    );
+    
     res.status(201).json({ task: populated });
   } catch (error) {
     next(error);
