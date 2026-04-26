@@ -10,9 +10,9 @@ router.use(auth); // Protect all team routes
 router.post('/create', createTeam);
 router.post('/join', joinTeam);
 router.get('/my-team', getMyTeam);
+router.get('/stats', getTeamStats);
 router.post('/leave', leaveTeam);
 router.get('/:id', getTeam);
-router.get('/:id/stats', getTeamStats);
 
 // Temporary cleanup route to drop old inviteCode index
 router.delete('/fix-indexes', async (req, res) => {

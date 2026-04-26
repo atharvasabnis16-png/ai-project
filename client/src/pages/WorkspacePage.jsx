@@ -10,6 +10,7 @@ import {
   HiOutlineSave
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import AIClassifier from '../components/AIClassifier';
 
 const WorkspacePage = () => {
   const { user } = useAuth();
@@ -231,6 +232,11 @@ const WorkspacePage = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* AI Classifier Section */}
+      <div className="mt-8">
+        <AIClassifier />
       </div>
     </div>
   );

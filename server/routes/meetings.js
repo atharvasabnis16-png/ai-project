@@ -1,13 +1,14 @@
 import express from 'express';
-import { getMeetings, createMeeting, analyzeMeeting } from '../controllers/meetingController.js';
 import auth from '../middleware/auth.js';
+import { 
+  getMeetings, 
+  scheduleMeeting,
+  markAttendance
+} from '../controllers/meetingController.js';
 
 const router = express.Router();
-
-router.use(auth); // Protect all meeting routes
-
+router.use(auth);
 router.get('/', getMeetings);
-router.post('/', createMeeting);
-router.post('/:id/analyze', analyzeMeeting);
-
+router.post('/schedule', scheduleMeeting);
+router.put('/attendance', markAttendance);
 export default router;

@@ -5,6 +5,10 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import connectDB from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -17,9 +21,7 @@ import workspaceRoutes from './routes/workspace.js';
 import meetingRoutes from './routes/meetings.js';
 import aiRoutes from './routes/ai.js';
 import notificationRoutes from './routes/notifications.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import reportRoutes from './routes/reports.js';
 
 // Load .env
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -46,6 +48,9 @@ app.use(helmet({
 app.use(morgan('dev'));
 
 // API Routes
+// Serve uploaded files statically
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/tasks', taskRoutes);
@@ -53,6 +58,7 @@ app.use('/api/workspace', workspaceRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Root route
 app.get('/', (req, res) => {

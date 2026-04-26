@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const TeamPage = () => {
   const { user, refreshUser } = useAuth();
-  const [team, setTeam] = useState(null);
+  const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [createForm, setCreateForm] = useState({ name: '', projectName: '' });
   const [joinForm, setJoinForm] = useState({ code: '' });
@@ -15,21 +15,21 @@ const TeamPage = () => {
   const [generatedCode, setGeneratedCode] = useState('');
 
   useEffect(() => {
-    const fetchTeam = async () => {
+    const fetchTeamStats = async () => {
       try {
-        const { data } = await api.get('/teams/my-team');
-        if (data.success) {
-          setTeam(data.team);
+        const { data } = await api.get('/teams/stats');
+        if (data.success && data.team) {
+          setTeamData(data.team);
         }
       } catch (err) {
-        console.error(err);
-        setTeam(null);
+        console.error('Team stats error:', err);
+        // Don't crash - just show empty state
       } finally {
         setLoading(false);
       }
     };
-    fetchTeam();
-  }, []);
+    fetchTeamStats();
+  }, [user?.teamId]);
 
   const createTeam = async (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ const TeamPage = () => {
     try {
       const { data } = await api.post('/teams/create', createForm);
       if (data.success) {
-        setTeam(data.team);
+        setTeamData(data.team);
         setGeneratedCode(data.team.code);
         toast.success('Team created successfully!');
         setCreateForm({ name: '', projectName: '' });
@@ -81,7 +81,7 @@ const TeamPage = () => {
     
     try {
       await api.post('/teams/leave');
-      setTeam(null);
+      setTeamData(null);
       toast.success('Left team successfully');
       await refreshUser();
     } catch (error) {
@@ -90,8 +90,8 @@ const TeamPage = () => {
   };
 
   const copyInviteCode = () => {
-    if (team?.code) {
-      navigator.clipboard.writeText(team.code);
+    if (teamData?.code) {
+      navigator.clipboard.writeText(teamData.code);
       toast.success('Invite code copied to clipboard!');
     }
   };
@@ -99,7 +99,7 @@ const TeamPage = () => {
   if (loading) return <div className="text-center py-20 font-black text-gray-300 uppercase animate-pulse">Establishing Connection...</div>;
 
   // SECTION A - No Team State
-  if (!team) {
+  if (!teamData) {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center p-8">
         <div className="w-full max-w-6xl">
@@ -243,17 +243,55 @@ const TeamPage = () => {
   return (
     <div className="min-h-screen bg-[#0f0f1a] p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Safety checks */}
+        {(() => {
+          const members = teamData?.members || [];
+          const teamName = teamData?.name || '';
+          const teamCode = teamData?.code || '';
+          const teamCompletion = teamData?.teamCompletion || 0;
+          const totalTasks = teamData?.totalTasks || 0;
+          return null;
+        })()}
+        {/* Team Stats Banner */}
+        {teamData && (
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-[#1a1a2e] border border-indigo-500/20 
+              rounded-2xl p-4 text-center">
+              <p className="text-3xl font-bold text-white">
+                {teamData.members?.length || 0}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">Members</p>
+            </div>
+            <div className="bg-[#1a1a2e] border border-indigo-500/20 
+              rounded-2xl p-4 text-center">
+              <p className="text-3xl font-bold text-indigo-400">
+                {teamData.totalTasks || 0}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">Total Tasks</p>
+            </div>
+            <div className="bg-[#1a1a2e] border border-indigo-500/20 
+              rounded-2xl p-4 text-center">
+              <p className="text-3xl font-bold text-green-400">
+                {teamData.teamCompletion || 0}%
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                Team Completion
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-black text-white mb-2 tracking-tight">
-            {team.name}
+            {teamData.name}
           </h1>
           <p className="text-indigo-400 text-xl font-medium mb-4">
-            {team.projectName}
+            {teamData.projectName}
           </p>
           <div className="inline-flex items-center space-x-2 bg-indigo-500/20 border border-indigo-500 px-4 py-2 rounded-full">
             <span className="text-indigo-300 font-medium">Code:</span>
-            <span className="text-white font-mono font-bold">{team.code}</span>
+            <span className="text-white font-mono font-bold">{teamData.code}</span>
             <button
               onClick={copyInviteCode}
               className="text-indigo-300 hover:text-white transition-colors"
@@ -271,7 +309,7 @@ const TeamPage = () => {
                 <HiOutlineUsers className="text-indigo-400 text-xl" />
               </div>
               <div>
-                <div className="text-3xl font-black text-white">{team.members?.length || 0}</div>
+                <div className="text-3xl font-black text-white">{teamData?.members?.length || 0}</div>
                 <div className="text-gray-400 text-sm">Total Members</div>
               </div>
             </div>
@@ -304,20 +342,20 @@ const TeamPage = () => {
 
         {/* Members Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {team.members?.map((member) => (
+          {teamData.members?.map((member) => (
             <div key={member._id} className="bg-[#1a1a2e] border border-indigo-500/20 rounded-2xl p-6">
               <div className="flex items-start space-x-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-bold text-xl">
-                    {member.name?.charAt(0)?.toUpperCase() || 'U'}
+                    {String(member.name || '').charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">{member.name || 'Unknown'}</h3>
-                  <p className="text-gray-400 text-sm mb-3">{member.email}</p>
+                  <h3 className="text-xl font-bold text-white mb-1">{String(member.name || 'Unknown')}</h3>
+                  <p className="text-gray-400 text-sm mb-3">{String(member.email || '')}</p>
                   
                   <div className="flex items-center space-x-2 mb-3">
-                    {team.leader === member._id ? (
+                    {teamData.leaderId === member._id ? (
                       <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
                         <HiOutlineStar size={12} />
                         <span>Leader</span>
@@ -330,14 +368,46 @@ const TeamPage = () => {
                     )}
                   </div>
 
-                  {member.skills && member.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {member.skills.map((skill, i) => (
+                  {/* Active Tasks Badge */}
+                  <div className="flex items-center gap-2 
+                    bg-indigo-500/10 rounded-lg px-3 py-1">
+                    <span className="text-indigo-400 text-sm">⚡</span>
+                    <span className="text-white text-sm font-bold">
+                      {Number(member.activeTasks || 0)}
+                    </span>
+                    <span className="text-gray-400 text-xs">active tasks</span>
+                  </div>
+
+                  {/* Completion Progress */}
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">Completion</span>
+                      <span className="text-white font-bold">
+                        {Number(member.completion || 0)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-indigo-500 
+                          to-purple-500 h-2 rounded-full transition-all"
+                        style={{ width: `${Number(member.completion || 0)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span className="text-gray-500">
+                        {Number(member.completedTasks || 0)}/{Number(member.totalTasks || 0)} tasks
+                      </span>
+                    </div>
+                  </div>
+
+                  {(member.skills || []).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {(member.skills || []).map((skill, i) => (
                         <div
                           key={i}
                           className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full px-2 py-1 text-xs"
                         >
-                          {skill.name}
+                          {typeof skill === 'string' ? skill : skill.name || ''}
                         </div>
                       ))}
                     </div>

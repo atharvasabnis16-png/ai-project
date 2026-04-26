@@ -1,7 +1,8 @@
 import express from 'express';
-import { getTasks, createTask, updateTask, deleteTask, aiSuggestTasks, aiAssignTask } from '../controllers/taskController.js';
+import { getTasks, createTask, updateTask, deleteTask, aiSuggestTasks, aiAssignTask, aiMatchTask, uploadTaskFile } from '../controllers/taskController.js';
 import { rankMembersForTask } from '../services/mlService.js';
 import auth from '../middleware/auth.js';
+import { upload } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -14,6 +15,8 @@ router.delete('/:id', deleteTask);
 
 router.post('/ai-suggest', aiSuggestTasks);
 router.post('/ai-assign', aiAssignTask);
+router.post('/ai-match', aiMatchTask);
+router.post('/:taskId/upload', auth, upload.single('file'), uploadTaskFile);
 
 router.post('/ml-assign', async (req, res) => {
   try {

@@ -12,10 +12,26 @@ const TaskBoardPage = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', skillRequired: 'coding', deadline: '' });
+  const [newTask, setNewTask] = useState({ title: '', description: '', skillRequired: 'coding', deadline: '', assignedTo: '' });
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [matchingTaskId, setMatchingTaskId] = useState(null);
+  const [uploadingTaskId, setUploadingTaskId] = useState(null);
 
   useEffect(() => {
     fetchTasks();
+  }, [user?.teamId]);
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        if (!user?.teamId) return;
+        const { data } = await api.get('/teams/my-team');
+        setTeamMembers(data.team?.members || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTeamMembers();
   }, [user?.teamId]);
 
   const fetchTasks = async () => {
@@ -44,31 +60,75 @@ const TaskBoardPage = () => {
   const createTask = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/tasks', newTask);
+      const taskData = {
+        title: newTask.title,
+        description: newTask.description,
+        status: 'todo',
+        priority: 'medium',
+        assignedTo: newTask.assignedTo || null,
+        teamId: user.teamId
+      };
+      await api.post('/tasks', taskData);
       toast.success('Task operational');
       setShowModal(false);
-      setNewTask({ title: '', description: '', skillRequired: 'coding', deadline: '' });
+      setNewTask({ title: '', description: '', skillRequired: 'coding', deadline: '', assignedTo: '' });
       fetchTasks();
     } catch (err) {
-      toast.error('Construction failed');
+      toast.error('Task creation failed');
     }
   };
 
-  const handleAiAssign = async (taskId) => {
-    toast.loading('AI Analyzing Best-Fit...', { duration: 1500 });
+  const handleAIMatch = async (taskId) => {
     try {
-      await api.post(`/tasks/${taskId}/ai-assign`);
-      toast.success('Optimized matching complete');
-      fetchTasks();
-    } catch (err) {
-      toast.error('AI Match Logic Offline');
+      setMatchingTaskId(taskId);
+      const { data } = await api.post('/tasks/ai-match', { 
+        taskId 
+      });
+      if (data.success) {
+        setTasks(prev => prev.map(t => 
+          t._id === taskId ? data.task : t
+        ));
+        alert(`✅ ${data.message}`);
+      }
+    } catch (error) {
+      alert('Failed to match task: ' + 
+        (error.response?.data?.message || error.message));
+    } finally {
+      setMatchingTaskId(null);
+    }
+  };
+
+  const handleFileUpload = async (taskId, file) => {
+    if (!file) return;
+    try {
+      setUploadingTaskId(taskId);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const { data } = await api.post(
+        `/tasks/${taskId}/upload`, 
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      if (data.success) {
+        setTasks(prev => prev.map(t => 
+          t._id === taskId ? data.task : t
+        ));
+        alert('✅ Work submitted! Task marked as completed!');
+      }
+    } catch (error) {
+      alert('Upload failed: ' + 
+        (error.response?.data?.message || error.message));
+    } finally {
+      setUploadingTaskId(null);
     }
   };
 
   const columns = [
     { id: 'todo', name: 'Open Pipeline', color: 'bg-gray-100' },
-    { id: 'in-progress', name: 'Active Execution', color: 'bg-indigo-600' },
-    { id: 'done', name: 'Verified Data', color: 'bg-green-500' }
+    { id: 'inprogress', name: 'Active Execution', color: 'bg-indigo-600' },
+    { id: 'done', name: 'Completed', color: 'bg-green-500' }
   ];
 
   if (loading) return <div className="text-center py-20 font-black text-gray-400 uppercase tracking-widest animate-pulse">Establishing Pipeline...</div>;
@@ -134,7 +194,15 @@ const TaskBoardPage = () => {
                 </div>
               ) : (
                 Array.isArray(tasks) ? tasks.filter(t => t.status === col.id).map(task => (
-                  <TaskCard key={task._id} task={task} onAiAssign={handleAiAssign} />
+                  <TaskCard 
+                    key={task._id} 
+                    task={task} 
+                    onAiAssign={handleAIMatch} 
+                    matchingTaskId={matchingTaskId}
+                    onFileUpload={handleFileUpload}
+                    uploadingTaskId={uploadingTaskId}
+                    columnId={col.id}
+                  />
                 )) : null
               )}
             </div>
@@ -158,6 +226,21 @@ const TaskBoardPage = () => {
                 />
               </div>
               <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Assign To</label>
+                  <select
+                    value={newTask.assignedTo}
+                    onChange={e => setNewTask({...newTask, assignedTo: e.target.value})}
+                    className="w-full bg-[#0f0f1a] border border-indigo-500/30 
+                      rounded-xl px-4 py-2 text-white mt-1">
+                    <option value="">Unassigned</option>
+                    {teamMembers.map(member => (
+                      <option key={member._id} value={member._id}>
+                        {member.name} {member.isLeader ? '👑' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Intel Component</label>
                   <select 

@@ -27,7 +27,7 @@ const taskSchema = new mongoose.Schema({
     enum: ['coding', 'design', 'research', 'writing', 'ppt', 'testing', 'data-analysis', 'communication'],
     default: 'coding'
   },
-  assignee: {
+  assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
@@ -56,6 +56,15 @@ const taskSchema = new mongoose.Schema({
   order: {
     type: Number,
     default: 0
+  },
+  submittedFile: {
+    filename: { type: String },
+    path: { type: String },
+    uploadedAt: { type: Date },
+    uploadedBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User' 
+    }
   }
 }, {
   timestamps: true

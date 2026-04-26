@@ -1,273 +1,412 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
-import { HiOutlineChatAlt2, HiOutlinePlus, HiOutlineSparkles, HiOutlineCalendar, HiOutlineTrash } from 'react-icons/hi';
-import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
-const MeetingsPage = () => {
+export default function MeetingsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [newMeeting, setNewMeeting] = useState({ title: '', transcript: '', date: new Date().toISOString().split('T')[0] });
-  const [analysis, setAnalysis] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [form, setForm] = useState({ 
+    title: '', date: '', time: '', meetLink: '' 
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [teamData, setTeamData] = useState(null);
+
+  const isLeader = 
+  String(teamData?.leader?._id || teamData?.leader || '') === 
+  String(user?._id || '');
 
   useEffect(() => {
     fetchMeetings();
+    fetchTeam();
   }, [user?.teamId]);
+
+  const fetchTeam = async () => {
+    try {
+      if (!user?.teamId) return;
+      const { data } = await api.get('/teams/my-team');
+      if (data.team || data) {
+        setTeamData(data.team || data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchMeetings = async () => {
     try {
-      if (!user?.teamId) {
-        setLoading(false);
-        return;
-      }
+      if (!user?.teamId) { setLoading(false); return; }
       const { data } = await api.get('/meetings');
-      setMeetings(Array.isArray(data.meetings) 
-        ? data.meetings 
-        : Array.isArray(data) 
-          ? data 
-          : []
-      );
-    } catch (error) {
-      console.error(error);
+      if (data.success) {
+        setMeetings(Array.isArray(data.meetings) 
+          ? data.meetings : []);
+      }
+    } catch (err) {
+      console.error(err);
       setMeetings([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const createMeeting = async (e) => {
-    e.preventDefault();
+  const handleSchedule = async () => {
     try {
-      await api.post('/meetings', newMeeting);
-      toast.success('Meeting logged');
-      setShowModal(false);
-      setNewMeeting({ title: '', transcript: '', date: new Date().toISOString().split('T')[0] });
+      if (!form.title || !form.date || 
+          !form.time || !form.meetLink) {
+        alert('Please fill all fields');
+        return;
+      }
+      setSubmitting(true);
+      const dateTime = new Date(`${form.date}T${form.time}`);
+      const { data } = await api.post('/meetings/schedule', {
+        title: form.title,
+        date: dateTime,
+        meetLink: form.meetLink
+      });
+      if (data.success) {
+        setMeetings(prev => [...prev, data.meeting]);
+        setShowScheduleModal(false);
+        setForm({ title: '', date: '', time: '', meetLink: '' });
+      }
+    } catch (err) {
+      alert('Failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleMarkAttendance = async (meetingId, status) => {
+    try {
+      await api.put('/meetings/attendance', { meetingId, status });
       fetchMeetings();
     } catch (err) {
-      toast.error('Failed to log');
+      console.error(err);
     }
   };
 
-  const analyzeMeeting = async (id) => {
-    setAnalyzing(true);
-    setAnalysis(null);
-    toast.loading('AI Processing Voice-to-Intel...', { duration: 2000 });
-    try {
-      const { data } = await api.post(`/meetings/${id}/analyze`);
-      setAnalysis({ id, ...data });
-      toast.success('Meeting Analyzed');
-    } catch (err) {
-      toast.error('Analysis Link Offline');
-    } finally {
-      setAnalyzing(false);
-    }
+  const now = new Date();
+  const upcoming = meetings.filter(m => new Date(m.date) > now);
+  const past = meetings.filter(m => new Date(m.date) <= now);
+
+  const getMeetLink = (link) => {
+    if (!link) return '#';
+    if (link.startsWith('http')) return link;
+    return `https://meet.google.com/${link}`;
   };
 
-  if (loading) return <div className="text-center py-20 font-black text-gray-300 animate-pulse">Accessing Transcript Hub...</div>;
-  
-  // Show empty state if no team
+  const formatDate = (date) => new Date(date).toLocaleString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const getMyAttendance = (meeting) => {
+    const record = meeting.attendees?.find(
+      a => a.user === user?._id || a.user?._id === user?._id
+    );
+    return record?.status || 'pending';
+  };
+
   if (!user?.teamId) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <h3 className="text-2xl font-black text-gray-800 mb-4">You're not in a team yet</h3>
-        <p className="text-gray-500 font-medium mb-8 text-center max-w-md">
-          Create or join a team to access this feature.
+      <div className="flex flex-col items-center 
+        justify-center h-96 text-center">
+        <p className="text-5xl mb-4">📅</p>
+        <h3 className="text-xl font-bold text-white mb-2">
+          No Team Yet
+        </h3>
+        <p className="text-gray-400">
+          Join a team to see meetings
         </p>
-        <button 
-          onClick={() => navigate('/team')}
-          className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transform transition-all active:scale-[0.98]"
-        >
-          Go to Team Page
-        </button>
       </div>
     );
   }
 
-  const safeMeetings = Array.isArray(meetings) ? meetings : [];
-
   return (
-    <div className="space-y-10 animate-fadeIn h-full flex flex-col">
-      <div className="flex justify-between items-center">
+    <div className="p-6 max-w-4xl mx-auto">
+      
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Meeting Intelligence</h1>
-          <p className="text-gray-500 font-bold text-sm mt-1 uppercase tracking-widest opacity-60 italic">Voice & Decision Analytics</p>
+          <h1 className="text-2xl font-bold text-white">
+            📅 Meetings
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">
+            {upcoming.length} upcoming · {past.length} past
+          </p>
         </div>
-        <button 
-            onClick={() => setShowModal(true)}
-            className="px-8 py-4 bg-gray-900 text-white font-black rounded-2xl flex items-center space-x-3 shadow-xl hover:bg-black transition-all active:scale-95"
-        >
-            <HiOutlinePlus size={20} className="text-indigo-400" />
-            <span className="text-sm uppercase tracking-[0.2em]">Log Session</span>
-        </button>
+        {isLeader && (
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="px-4 py-2 bg-gradient-to-r 
+              from-indigo-500 to-purple-500 
+              text-white rounded-xl font-semibold
+              hover:opacity-90 transition-all">
+            + Schedule Meeting
+          </button>
+        )}
+        {!isLeader && (
+          <p className="text-xs text-gray-500 italic">
+            Only team lead can schedule meetings
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 flex-1">
-        {/* Meeting List */}
-        <div className="lg:col-span-1 space-y-6 overflow-y-auto max-h-[calc(100vh-250px)] pr-4 custom-scrollbar">
-          {safeMeetings.length === 0 ? (
-            <div className="bg-white p-10 rounded-[40px] border-2 border-dashed border-gray-100 text-center opacity-40">
-                <HiOutlineChatAlt2 size={48} className="mx-auto mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest">No Sessions Logged</p>
-            </div>
-          ) : (
-            safeMeetings.map(m => (
-              <div 
-                key={m._id} 
-                onClick={() => analyzeMeeting(m._id)}
-                className={`p-6 rounded-[32px] border-2 cursor-pointer transition-all group ${
-                  analysis?.id === m._id ? 'bg-white border-indigo-600 shadow-xl ring-4 ring-indigo-50' : 'bg-white border-transparent hover:border-gray-200 shadow-sm'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <HiOutlineCalendar size={20} />
-                    </div>
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        {new Date(m.date).toLocaleDateString()}
-                    </span>
-                </div>
-                <h3 className="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight line-clamp-1">{m.title}</h3>
-                <p className="text-xs font-medium text-gray-400 mt-2 line-clamp-2 italic">"{m.transcript.slice(0, 100)}..."</p>
-                <div className="mt-6 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <HiOutlineSparkles className="text-indigo-400" />
-                        <span className="text-[10px] font-black uppercase text-indigo-600">Analyze with AI</span>
-                    </div>
-                </div>
-              </div>
-            ))
-          )}
+      {loading ? (
+        <div className="text-center py-20">
+          <p className="text-indigo-400 animate-pulse">
+            Loading meetings...
+          </p>
         </div>
-
-        {/* Analysis Result */}
-        <div className="lg:col-span-2">
-            {!analysis && !analyzing ? (
-                <div className="h-full bg-white rounded-[48px] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center p-20 text-center opacity-40">
-                    <HiOutlineSparkles size={64} className="mb-6 text-indigo-200" />
-                    <h3 className="text-xl font-black text-gray-400 uppercase tracking-widest">Neural Link Idle</h3>
-                    <p className="text-sm font-medium text-gray-300 mt-2">Select a session on the left to activate the Meeting Intelligence Engine.</p>
-                </div>
-            ) : analyzing ? (
-                <div className="h-full bg-white rounded-[48px] border border-gray-50 flex flex-col items-center justify-center p-20 text-center shadow-2xl">
-                    <div className="relative">
-                        <div className="w-24 h-24 bg-indigo-50 rounded-full animate-ping opacity-25" />
-                        <HiOutlineSparkles size={48} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 animate-pulse" />
-                    </div>
-                    <h3 className="text-xl font-black text-indigo-600 uppercase tracking-[.3em] mt-8">Synthesizing Intel</h3>
-                    <p className="text-sm font-medium text-gray-400 mt-2">Claude is analyzing your transcript for key decisions and tasks...</p>
-                </div>
+      ) : (
+        <>
+          {/* Upcoming Meetings */}
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-white mb-4 
+              flex items-center gap-2">
+              🟢 Upcoming Meetings
+            </h2>
+            {upcoming.length === 0 ? (
+              <div className="bg-[#1a1a2e] border border-indigo-500/20 
+                rounded-2xl p-8 text-center">
+                <p className="text-4xl mb-3">📭</p>
+                <p className="text-white font-semibold">
+                  No meetings scheduled yet
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  {isLeader 
+                    ? 'Click "Schedule Meeting" to add one'
+                    : 'Contact your team lead to schedule a meeting'}
+                </p>
+              </div>
             ) : (
-                <div className="bg-white rounded-[48px] shadow-2xl border border-gray-50 p-12 space-y-10 animate-fadeIn h-full overflow-y-auto custom-scrollbar">
-                    <div className="flex justify-between items-start pt-2">
-                        <div>
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[.4em] mb-2 block">Meeting Analytics</span>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tight underline decoration-indigo-500 decoration-4 underline-offset-8">Insight Matrix</h2>
-                        </div>
-                        <div className="flex items-center space-x-2 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-full text-xs border border-green-100">
-                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                             <span>Live Analysis</span>
-                        </div>
-                    </div>
-
-                    <section>
-                        <h4 className="flex items-center text-sm font-black text-gray-800 uppercase tracking-widest mb-6">
-                            <span className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mr-3"><HiOutlineChatAlt2 /></span>
-                            Executive Summary
-                        </h4>
-                        <p className="text-gray-600 font-bold leading-relaxed italic bg-gray-50 p-8 rounded-[32px] border border-gray-100">
-                            {analysis.summary || 'No summary available'}
+              <div className="space-y-4">
+                {upcoming.map(meeting => (
+                  <div key={meeting._id}
+                    className="bg-[#1a1a2e] border 
+                      border-indigo-500/20 rounded-2xl p-5">
+                    <div className="flex justify-between 
+                      items-start">
+                      <div>
+                        <h3 className="text-white font-bold text-lg">
+                          {meeting.title}
+                        </h3>
+                        <p className="text-indigo-400 text-sm mt-1">
+                          🕐 {formatDate(meeting.date)}
                         </p>
-                    </section>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <section>
-                            <h4 className="flex items-center text-sm font-black text-gray-800 uppercase tracking-widest mb-6">
-                                <span className="w-8 h-8 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center mr-3"><HiOutlineCheckCircle /></span>
-                                Key Decisions
-                            </h4>
-                            <ul className="space-y-3">
-                                {analysis.decisions?.map((d, i) => (
-                                    d && typeof d === 'string' ? (
-                                        <li key={i} className="flex items-start space-x-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 text-sm font-bold text-gray-700">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 flex-shrink-0" />
-                                            <span>{d}</span>
-                                        </li>
-                                    ) : null
-                                ))}
-                            </ul>
-                        </section>
-                        <section>
-                            <h4 className="flex items-center text-sm font-black text-gray-800 uppercase tracking-widest mb-6">
-                                <span className="w-8 h-8 bg-green-50 text-green-600 rounded-lg flex items-center justify-center mr-3"><HiOutlinePlus /></span>
-                                Action Tasked
-                            </h4>
-                            <ul className="space-y-3">
-                                {analysis.actionPoints?.map((a, i) => (
-                                    a && typeof a === 'string' ? (
-                                        <li key={i} className="flex items-start space-x-3 p-4 bg-green-50/50 rounded-2xl border border-green-100/50 text-sm font-bold text-gray-700">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-600 mt-1.5 flex-shrink-0" />
-                                            <span>{a}</span>
-                                        </li>
-                                    ) : null
-                                ))}
-                            </ul>
-                        </section>
+                        <p className="text-gray-400 text-xs mt-1">
+                          Scheduled by {meeting.scheduledBy?.name}
+                        </p>
+                      </div>
+                      <a
+                        href={getMeetLink(meeting.meetLink)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-green-500/20 
+                          text-green-400 rounded-xl text-sm 
+                          font-semibold hover:bg-green-500/30 
+                          transition-all flex items-center gap-2">
+                        🎥 Join Meeting
+                      </a>
                     </div>
-                </div>
-            )}
-        </div>
-      </div>
-
-      {/* Log Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-[#1a1a2e]/40">
-          <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-2xl p-12 relative animate-fadeIn">
-            <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Log Meeting Hub</h2>
-            <form onSubmit={createMeeting} className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Session Title</label>
-                    <input 
-                    type="text" required value={newMeeting.title} 
-                    onChange={e => setNewMeeting({...newMeeting, title: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all text-gray-900 placeholder-gray-400 bg-white"
-                    placeholder="Weekly Sync #1"
-                    />
-                </div>
-                <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Sync Date</label>
-                    <input 
-                    type="date" required value={newMeeting.date}
-                    onChange={e => setNewMeeting({...newMeeting, date: e.target.value})}
-                    className="w-full px-6 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-indigo-600 transition-all outline-none font-bold text-gray-900 bg-white"
-                    />
-                </div>
+                    <div className="mt-3 p-3 bg-black/20 
+                      rounded-xl">
+                      <p className="text-xs text-gray-400">
+                        Meet Link:
+                      </p>
+                      <p className="text-xs text-indigo-300 
+                        break-all mt-1">
+                        {meeting.meetLink}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+
+          {/* Past Meetings Log */}
+          <div>
+            <h2 className="text-lg font-bold text-white mb-4 
+              flex items-center gap-2">
+              📋 Meeting Log
+            </h2>
+            {past.length === 0 ? (
+              <div className="bg-[#1a1a2e] border border-indigo-500/20 
+                rounded-2xl p-6 text-center">
+                <p className="text-gray-400 text-sm">
+                  No past meetings yet
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {past.map(meeting => {
+                  const myStatus = getMyAttendance(meeting);
+                  return (
+                    <div key={meeting._id}
+                      className="bg-[#1a1a2e] border 
+                        border-indigo-500/10 rounded-2xl p-4">
+                      <div className="flex justify-between 
+                        items-center">
+                        <div>
+                          <h3 className="text-white font-semibold">
+                            {meeting.title}
+                          </h3>
+                          <p className="text-gray-400 text-xs mt-1">
+                            {formatDate(meeting.date)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {myStatus === 'attended' && (
+                            <span className="px-3 py-1 
+                              bg-green-500/20 text-green-400 
+                              rounded-full text-xs font-semibold">
+                              ✅ Attended
+                            </span>
+                          )}
+                          {myStatus === 'missed' && (
+                            <span className="px-3 py-1 
+                              bg-red-500/20 text-red-400 
+                              rounded-full text-xs font-semibold">
+                              ❌ Missed
+                            </span>
+                          )}
+                          {myStatus === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleMarkAttendance(
+                                  meeting._id, 'attended'
+                                )}
+                                className="px-3 py-1 bg-green-500/20 
+                                  text-green-400 rounded-full 
+                                  text-xs hover:bg-green-500/30">
+                                ✅ Attended
+                              </button>
+                              <button
+                                onClick={() => handleMarkAttendance(
+                                  meeting._id, 'missed'
+                                )}
+                                className="px-3 py-1 bg-red-500/20 
+                                  text-red-400 rounded-full 
+                                  text-xs hover:bg-red-500/30">
+                                ❌ Missed
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Schedule Meeting Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/60 
+          backdrop-blur-sm z-50 flex items-center 
+          justify-center p-4">
+          <div className="bg-[#1a1a2e] border border-indigo-500/30 
+            rounded-2xl p-6 w-full max-w-md">
+            <h2 className="text-white font-bold text-xl mb-6">
+              📅 Schedule a Meeting
+            </h2>
+            <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Session Transcript (Full Text)</label>
-                <textarea 
-                  required value={newMeeting.transcript}
-                  onChange={e => setNewMeeting({...newMeeting, transcript: e.target.value})}
-                  className="w-full h-48 px-6 py-4 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-indigo-600 focus:bg-white outline-none font-bold transition-all resize-none text-gray-900 placeholder-gray-400 bg-white"
-                  placeholder="Paste meeting notes or voice-to-text here..."
+                <label className="text-sm text-gray-400">
+                  Meeting Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Weekly Standup"
+                  value={form.title}
+                  onChange={e => setForm({
+                    ...form, title: e.target.value
+                  })}
+                  className="w-full mt-1 bg-black/30 border 
+                    border-indigo-500/30 rounded-xl px-4 py-2 
+                    text-white placeholder-gray-500 
+                    focus:outline-none focus:border-indigo-500"
                 />
               </div>
-              <div className="pt-4 flex items-center space-x-4">
-                <button type="submit" className="flex-1 h-16 bg-gray-900 text-white font-black rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95">Verify & Store</button>
-                <button type="button" onClick={() => setShowModal(false)} className="px-8 h-16 bg-gray-100 text-gray-500 font-black rounded-2xl hover:bg-gray-200 transition-all">Cancel</button>
+              <div>
+                <label className="text-sm text-gray-400">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm({
+                    ...form, date: e.target.value
+                  })}
+                  className="w-full mt-1 bg-black/30 border 
+                    border-indigo-500/30 rounded-xl px-4 py-2 
+                    text-white focus:outline-none 
+                    focus:border-indigo-500"
+                />
               </div>
-            </form>
+              <div>
+                <label className="text-sm text-gray-400">
+                  Time
+                </label>
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={e => setForm({
+                    ...form, time: e.target.value
+                  })}
+                  className="w-full mt-1 bg-black/30 border 
+                    border-indigo-500/30 rounded-xl px-4 py-2 
+                    text-white focus:outline-none 
+                    focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400">
+                  Google Meet Link or Code
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                  value={form.meetLink}
+                  onChange={e => setForm({
+                    ...form, meetLink: e.target.value
+                  })}
+                  className="w-full mt-1 bg-black/30 border 
+                    border-indigo-500/30 rounded-xl px-4 py-2 
+                    text-white placeholder-gray-500 
+                    focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="flex-1 py-2 border border-gray-600 
+                  text-gray-400 rounded-xl hover:border-gray-400 
+                  transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={handleSchedule}
+                disabled={submitting}
+                className="flex-1 py-2 bg-gradient-to-r 
+                  from-indigo-500 to-purple-500 text-white 
+                  rounded-xl font-semibold hover:opacity-90 
+                  disabled:opacity-50 transition-all">
+                {submitting ? 'Scheduling...' : 'Schedule →'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-import { HiOutlineCheckCircle } from 'react-icons/hi';
-export default MeetingsPage;
+}

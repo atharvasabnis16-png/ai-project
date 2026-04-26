@@ -1,5 +1,6 @@
 import Team from '../models/Team.js';
 import User from '../models/User.js';
+import Task from '../models/Task.js';
 
 // Generate a 6-char invite code
 const generateInviteCode = () => {
@@ -183,8 +184,112 @@ export const getTeam = async (req, res, next) => {
   }
 };
 
-// GET /api/teams/:id/stats — Get team contribution stats
-export const getTeamStats = async (req, res, next) => {
+// GET /api/teams/stats — Get team contribution stats
+export const getTeamStats = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    
+    if (!user) return res.status(404).json({ 
+      message: 'User not found' 
+    });
+
+    // Try finding team where user is a member
+    // even if user.teamId is not set
+    let teamId = user.teamId;
+    
+    if (!teamId) {
+      const team = await Team.findOne({ 
+        members: req.userId 
+      });
+      if (team) {
+        teamId = team._id;
+        // Fix the user record too
+        await User.findByIdAndUpdate(req.userId, { 
+          teamId: team._id 
+        });
+      }
+    }
+
+    if (!teamId) {
+      return res.json({
+        success: true,
+        team: null,
+        message: 'Not in a team'
+      });
+    }
+
+    const team = await Team.findById(teamId)
+      .populate('members', 'name email skills');
+
+    if (!team) return res.json({ 
+      success: true, 
+      team: null 
+    });
+
+    const memberStats = await Promise.all(
+      team.members.map(async (member) => {
+        const totalTasks = await Task.countDocuments({ 
+          assignedTo: member._id,
+          teamId: teamId
+        });
+        const completedTasks = await Task.countDocuments({ 
+          assignedTo: member._id,
+          teamId: teamId,
+          status: 'done'
+        });
+        const activeTasks = await Task.countDocuments({ 
+          assignedTo: member._id,
+          teamId: teamId,
+          status: 'inprogress'
+        });
+        const completion = totalTasks > 0 
+          ? Math.round((completedTasks / totalTasks) * 100) 
+          : 0;
+
+        return {
+          _id: member._id,
+          name: member.name,
+          email: member.email,
+          skills: member.skills || [],
+          totalTasks,
+          completedTasks,
+          activeTasks,
+          completion
+        };
+      })
+    );
+
+    const totalTeamTasks = await Task.countDocuments({ 
+      teamId 
+    });
+    const completedTeamTasks = await Task.countDocuments({ 
+      teamId, 
+      status: 'done' 
+    });
+    const teamCompletion = totalTeamTasks > 0 
+      ? Math.round((completedTeamTasks / totalTeamTasks) * 100) 
+      : 0;
+
+    res.json({
+      success: true,
+      team: {
+        _id: team._id,
+        name: team.name,
+        code: team.code,
+        leaderId: team.leader,
+        members: memberStats,
+        totalTasks: totalTeamTasks,
+        completedTasks: completedTeamTasks,
+        teamCompletion
+      }
+    });
+  } catch (error) {
+    console.error('getTeamStats error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const analyzeTeamFairness = async (req, res, next) => {
   try {
     const team = await Team.findById(req.params.id).populate('members', 'name email skills');
     

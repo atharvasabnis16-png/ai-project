@@ -1,76 +1,77 @@
 import Meeting from '../models/Meeting.js';
-import { aiService } from '../services/claudeService.js';
-import { createNotification } from './notificationController.js';
+import User from '../models/User.js';
+import Team from '../models/Team.js';
 
-// GET /api/meetings
-export const getMeetings = async (req, res, next) => {
+export const getMeetings = async (req, res) => {
   try {
-    const user = req.user;
-    if (!user.teamId) {
-      return res.status(400).json({ message: 'Join a team first' });
-    }
-
-    const meetings = await Meeting.find({ teamId: user.teamId })
-      .populate('createdBy', 'name email')
-      .sort({ date: -1 });
-
-    res.json({ meetings });
+    const user = await User.findById(req.userId);
+    if (!user.teamId) return res.json({ 
+      success: true, meetings: [] 
+    });
+    const meetings = await Meeting.find({ 
+      teamId: user.teamId 
+    })
+    .populate('scheduledBy', 'name')
+    .sort({ date: 1 });
+    res.json({ success: true, meetings });
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// POST /api/meetings
-export const createMeeting = async (req, res, next) => {
+export const scheduleMeeting = async (req, res) => {
   try {
-    const { title, date, transcript, speakerParticipation } = req.body;
-    const user = req.user;
+    const { title, date, meetLink } = req.body;
+    const user = await User.findById(req.userId);
+    
+    if (!user.teamId) return res.status(400).json({ 
+      message: 'Not in a team' 
+    });
 
-    if (!user.teamId) {
-      return res.status(400).json({ message: 'Join a team first' });
-    }
+    const team = await Team.findById(user.teamId)
+      .populate('members', '_id');
+
+    const attendees = team.members.map(m => ({
+      user: m._id,
+      status: 'pending'
+    }));
 
     const meeting = await Meeting.create({
       teamId: user.teamId,
       title,
-      date: date || new Date(),
-      transcript: transcript || '',
-      speakerParticipation: speakerParticipation || [],
-      createdBy: req.userId
+      date: new Date(date),
+      meetLink,
+      scheduledBy: req.userId,
+      attendees,
+      status: 'upcoming'
     });
 
-    // Create notification for new meeting
-    await createNotification(
-      user.teamId,
-      user._id,
-      'meeting_scheduled',
-      `${user.name} scheduled a meeting: ${title}`,
-      '/meetings'
-    );
-
-    res.status(201).json({ meeting });
+    await meeting.populate('scheduledBy', 'name');
+    res.json({ success: true, meeting });
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// POST /api/meetings/:id/analyze
-export const analyzeMeeting = async (req, res, next) => {
+export const markAttendance = async (req, res) => {
   try {
-    const meeting = await Meeting.findById(req.params.id);
-    if (!meeting) {
-      return res.status(404).json({ message: 'Meeting not found' });
+    const { meetingId, status } = req.body;
+    const meeting = await Meeting.findById(meetingId);
+    if (!meeting) return res.status(404).json({ 
+      message: 'Meeting not found' 
+    });
+
+    const attendee = meeting.attendees.find(
+      a => a.user.toString() === req.userId.toString()
+    );
+    if (attendee) {
+      attendee.status = status;
+    } else {
+      meeting.attendees.push({ user: req.userId, status });
     }
-
-    const analysis = await aiService.analyzeMeeting(meeting.transcript);
-    
-    meeting.aiSummary = analysis.summary;
-    meeting.decisions = analysis.decisions;
-    meeting.actionItems = analysis.actionItems;
     await meeting.save();
-
-    res.json({ meeting, analysis });
+    res.json({ success: true, meeting });
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
