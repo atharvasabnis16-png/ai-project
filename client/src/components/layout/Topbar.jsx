@@ -5,7 +5,7 @@ import { HiOutlineBell, HiOutlineSearch, HiOutlineUser, HiOutlineLogout } from '
 import api from '../../services/api';
 
 const Topbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -16,18 +16,22 @@ const Topbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const fetchTeamName = async () => {
-      if (!user?.teamId) return;
+    refreshUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
       try {
+        if (!user?.teamId) return;
         const { data } = await api.get('/teams/my-team');
-        if (data.success && data.team) {
-          setTeamName(data.team.name);
-        }
+        setTeamName(
+          data.team?.name || data.name || 'My Team'
+        );
       } catch (err) {
         console.error(err);
       }
     };
-    fetchTeamName();
+    fetchTeam();
   }, [user?.teamId]);
 
   useEffect(() => {
@@ -155,9 +159,12 @@ const Topbar = () => {
             >
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-gray-800 leading-tight">{user?.name || 'Academic'}</p>
-                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">
-                  {teamName || 'No Team'}
-                </p>
+                <span className="text-xs font-semibold
+  text-indigo-400 uppercase tracking-wide">
+  {user?.teamId 
+    ? (teamName || 'My Team') 
+    : 'NO TEAM'}
+</span>
               </div>
               <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-600/20 border-2 border-white">
                 {user?.name?.charAt(0) || 'P'}

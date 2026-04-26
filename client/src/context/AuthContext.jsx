@@ -33,16 +33,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    try {
-      const { data } = await api.get('/auth/me');
-      if (data.user) {
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-    } catch (error) {
-      console.error('Refresh user error:', error);
-    }
-  };
+  try {
+    const { data } = await api.get('/auth/me');
+    setUser(data.user || data);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const register = async (userData) => {
     try {
