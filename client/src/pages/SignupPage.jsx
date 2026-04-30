@@ -116,7 +116,7 @@ const SignupPage = () => {
       <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10 transition-all duration-700">
         <div className="hidden lg:block space-y-8 pr-10">
           <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center text-indigo-600 font-black text-2xl italic border border-indigo-50">
-            PI
+            SS
           </div>
           <h1 className="text-5xl font-black leading-[1.1] tracking-tight text-gray-800">
             {step === 1 ? (

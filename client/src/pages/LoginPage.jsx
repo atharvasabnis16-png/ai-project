@@ -47,10 +47,10 @@ const LoginPage = () => {
         {/* Logo Section */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-600/30 transform transition-transform hover:rotate-6">
-            <span className="text-white font-black text-3xl italic">PI</span>
+            <span className="text-white font-black text-3xl italic">SS</span>
           </div>
           <h2 className="text-4xl font-black text-gray-900 mb-3 tracking-tight">Welcome Back</h2>
-          <p className="text-gray-500 font-semibold text-sm uppercase tracking-widest opacity-60">Intelligence Platform</p>
+          <p className="text-gray-500 font-semibold text-sm uppercase tracking-widest opacity-60">AI Project Platform</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl rounded-[40px] shadow-2xl shadow-indigo-100/50 p-10 border border-white/50 dark:bg-[#1a1a2e] dark:border-indigo-500/20">

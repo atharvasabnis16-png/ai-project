@@ -21,7 +21,7 @@ import TeamSetupPage from './pages/TeamSetupPage';
 const Placeholder = ({ name }) => (
   <div className="bg-white p-12 rounded-3xl shadow-xl shadow-indigo-100/20 border border-gray-100 flex flex-col items-center justify-center space-y-6">
     <div className="w-20 h-20 bg-indigo-50 text-indigo-400 rounded-3xl flex items-center justify-center animate-pulse">
-        <span className="text-4xl font-bold">PI</span>
+        <span className="text-4xl font-bold">SS</span>
     </div>
     <div className="text-center">
         <h1 className="text-2xl font-black text-gray-800 mb-2">{name} Intelligence</h1>
